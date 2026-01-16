@@ -1,6 +1,7 @@
 using FluentValidation;
 using KooliProjekt.Application.Behaviors;
 using KooliProjekt.Application.Data;
+using KooliProjekt.Application.Data.Repositories;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -16,12 +17,9 @@ namespace KooliProjekt.WebAPI
             var builder = WebApplication.CreateBuilder(args);
 
             // Add services to the container.
-            var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-
-            // Add services to the container.
             builder.Services.AddDbContext<ApplicationDbContext>(options =>
             {
-                options.UseSqlServer(connectionString);
+                options.UseSqlite("Data Source=kooliprojekt.db");
             });
 
             builder.Services.AddControllers();
@@ -39,6 +37,10 @@ namespace KooliProjekt.WebAPI
                 config.AddOpenBehavior(typeof(TransactionalBehavior<,>));
             });
 
+            // Registreeri repository klassid
+            builder.Services.AddScoped<IAuthorRepository, AuthorRepository>();
+            builder.Services.AddScoped<IBookRepository, BookRepository>();
+
             var app = builder.Build();
 
             // Configure the HTTP request pipeline.
@@ -50,8 +52,22 @@ namespace KooliProjekt.WebAPI
 
             app.UseAuthorization();
 
-
             app.MapControllers();
+
+            // Küsi DbContext ja kutsu Migrate meetodi, mis loob 
+            // andmebaasi kui seda pole ja lisab ära puuduvad 
+            // migratsioonid
+            using (var scope = app.Services.CreateScope())
+            using (var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>())
+            {
+                dbContext.Database.Migrate();
+
+                // Andmete genereerimise lubame ainult Debug-režiimis
+#if (DEBUG)
+                var generator = new SeedData(dbContext);
+                generator.Generate();
+#endif
+            }
 
             app.Run();
         }
