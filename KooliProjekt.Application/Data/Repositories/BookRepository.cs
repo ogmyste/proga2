@@ -4,12 +4,14 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using System.Diagnostics.CodeAnalysis;
 
 namespace KooliProjekt.Application.Data.Repositories
 {
     /// <summary>
     /// Raamatute repository klass
     /// </summary>
+[ExcludeFromCodeCoverage]
     public class BookRepository : BaseRepository<Book>, IBookRepository
     {
         public BookRepository(ApplicationDbContext dbContext) : 

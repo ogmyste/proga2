@@ -1,47 +1,58 @@
+using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using KooliProjekt.Application.Data;
-using KooliProjekt.Application.Data.Repositories;
+using KooliProjekt.Application.Dto;
 using KooliProjekt.Application.Infrastructure.Results;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 
 namespace KooliProjekt.Application.Features.Books
 {
-    /// <summary>
-    /// Kasutab IBookRepositoryt
-    /// </summary>
-    public class GetBookQueryHandler : IRequestHandler<GetBookQuery, OperationResult<object>>
+    // 16.01.2026 - BookDetailsDto
+    public class GetBookQueryHandler : IRequestHandler<GetBookQuery, OperationResult<BookDetailsDto>>
     {
-        private readonly IBookRepository _bookRepository;
+        private readonly ApplicationDbContext _dbContext;
 
-        public GetBookQueryHandler(IBookRepository bookRepository)
+        public GetBookQueryHandler(ApplicationDbContext dbContext)
         {
-            _bookRepository = bookRepository;
+            if (dbContext == null)
+            {
+                throw new ArgumentNullException(nameof(dbContext));
+            }
+
+            _dbContext = dbContext;
         }
 
-        public async Task<OperationResult<object>> Handle(GetBookQuery request, CancellationToken cancellationToken)
+        public async Task<OperationResult<BookDetailsDto>> Handle(GetBookQuery request, CancellationToken cancellationToken)
         {
-            var result = new OperationResult<object>();
-            var book = await _bookRepository.GetByIdAsync(request.Id);
+            if (request == null)
+            {
+                throw new ArgumentNullException(nameof(request));
+            }
 
-            if (book == null)
+            var result = new OperationResult<BookDetailsDto>();
+
+            if (request.Id <= 0)
             {
                 return result;
             }
 
-            result.Value = new
-            {
-                Id = book.Id,
-                Title = book.Title,
-                Year = book.Year,
-                Author = new
+            result.Value = await _dbContext
+                .Books
+                .Include(book => book.Author)
+                .Where(book => book.Id == request.Id)
+                .Select(book => new BookDetailsDto
                 {
-                    book.Author.Id,
-                    book.Author.FirstName,
-                    book.Author.LastName
-                }
-            };
+                    Id = book.Id,
+                    Title = book.Title,
+                    Year = book.Year,
+                    AuthorId = book.AuthorId,
+                    AuthorFirstName = book.Author.FirstName,
+                    AuthorLastName = book.Author.LastName
+                })
+                .FirstOrDefaultAsync();
 
             return result;
         }

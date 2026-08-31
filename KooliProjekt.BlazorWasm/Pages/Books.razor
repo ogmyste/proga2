@@ -1,0 +1,60 @@
+@page "/lists"
+@inject IApiClient apiClient
+
+<PageTitle>Books</PageTitle>
+
+<h1>Books</h1>
+
+@if (books == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <p><a class="btn btn-primary" href="/create">Add new</a></p>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Id</th>
+                <th>Title</th>
+                <th>Year</th>
+                <th>AuthorId</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var book in books)
+            {
+                <tr>
+                    <td>@book.Id</td>
+                    <td>@book.Title</td>
+                    <td>@book.Year</td>
+                    <td>@book.AuthorId</td>
+                    <td>
+                        <a class="btn btn-success" href="/edit/@book.Id">Edit</a>
+                        <button class="btn btn-danger" @onclick="() => DeleteBook(book.Id)">Delete</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private IList<Book> books;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var result = await apiClient.List(1, 100);
+        books = result.Value.Results;
+    }
+
+    private async Task DeleteBook(int id)
+    {
+        var result = await apiClient.Delete(id);
+        if (!result.HasErrors)
+        {
+            await OnInitializedAsync();
+        }
+    }
+}

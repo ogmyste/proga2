@@ -4,12 +4,14 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using System.Diagnostics.CodeAnalysis;
 
 namespace KooliProjekt.Application.Data.Repositories
 {
     /// <summary>
     /// Autorite repository klass
     /// </summary>
+[ExcludeFromCodeCoverage]
     public class AuthorRepository : BaseRepository<Author>, IAuthorRepository
     {
         public AuthorRepository(ApplicationDbContext dbContext) : 

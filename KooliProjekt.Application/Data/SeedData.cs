@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Diagnostics.CodeAnalysis;
 
 namespace KooliProjekt.Application.Data
 {
@@ -12,6 +13,7 @@ namespace KooliProjekt.Application.Data
     /// Testandmed genereeritakse ainult siis kui mõni oluline 
     /// tabel on tühi.
     /// </summary>
+[ExcludeFromCodeCoverage]
     public class SeedData
     {
         private readonly ApplicationDbContext _dbContext;

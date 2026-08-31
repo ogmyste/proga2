@@ -1,7 +1,4 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using KooliProjekt.Application.Data;
@@ -21,17 +18,43 @@ namespace KooliProjekt.Application.Features.Authors
 
         public DeleteAuthorCommandHandler(ApplicationDbContext dbContext)
         {
+            if (dbContext == null)
+            {
+                throw new ArgumentNullException(nameof(dbContext));
+            }
+
             _dbContext = dbContext;
         }
 
         public async Task<OperationResult> Handle(DeleteAuthorCommand request, CancellationToken cancellationToken)
         {
+            if (request == null)
+            {
+                throw new ArgumentNullException(nameof(request));
+            }
+
             var result = new OperationResult();
 
-            await _dbContext
+            if (request.Id <= 0)
+            {
+                return result;
+            }
+
+            // InMemory ei toeta ExecuteDeleteAsync meetodit
+            var author = await _dbContext
                 .Authors
-                .Where(a => a.Id == request.Id)
-                .ExecuteDeleteAsync();
+                .Include(a => a.Books)
+                .FirstOrDefaultAsync(a => a.Id == request.Id);
+
+            if (author == null)
+            {
+                return result;
+            }
+
+            _dbContext.Books.RemoveRange(author.Books);
+            _dbContext.Authors.Remove(author);
+
+            await _dbContext.SaveChangesAsync();
 
             return result;
         }

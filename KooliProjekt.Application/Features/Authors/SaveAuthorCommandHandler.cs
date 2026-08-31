@@ -1,38 +1,60 @@
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 using KooliProjekt.Application.Data;
-using KooliProjekt.Application.Data.Repositories;
 using KooliProjekt.Application.Infrastructure.Results;
 using MediatR;
 
 namespace KooliProjekt.Application.Features.Authors
 {
-    /// <summary>
-    /// Kasutab IAuthorRepositoryt
-    /// </summary>
     public class SaveAuthorCommandHandler : IRequestHandler<SaveAuthorCommand, OperationResult>
     {
-        private readonly IAuthorRepository _authorRepository;
+        private readonly ApplicationDbContext _dbContext;
 
-        public SaveAuthorCommandHandler(IAuthorRepository authorRepository)
+        public SaveAuthorCommandHandler(ApplicationDbContext dbContext)
         {
-            _authorRepository = authorRepository;
+            if (dbContext == null)
+            {
+                throw new ArgumentNullException(nameof(dbContext));
+            }
+
+            _dbContext = dbContext;
         }
 
         public async Task<OperationResult> Handle(SaveAuthorCommand request, CancellationToken cancellationToken)
         {
+            if (request == null)
+            {
+                throw new ArgumentNullException(nameof(request));
+            }
+
             var result = new OperationResult();
 
-            var author = new Author();
-            if (request.Id != 0)
+            if (request.Id < 0)
             {
-                author = await _authorRepository.GetByIdAsync(request.Id);
+                result.AddError("Request ID cannot be negative");
+                return result;
+            }
+
+            var author = new Author();
+            if (request.Id == 0)
+            {
+                await _dbContext.Authors.AddAsync(author);
+            }
+            else
+            {
+                author = await _dbContext.Authors.FindAsync(request.Id);
+                if (author == null)
+                {
+                    result.AddError("Cannot find author with ID " + request.Id);
+                    return result;
+                }
             }
 
             author.FirstName = request.FirstName;
             author.LastName = request.LastName;
 
-            await _authorRepository.SaveAsync(author);
+            await _dbContext.SaveChangesAsync();
 
             return result;
         }

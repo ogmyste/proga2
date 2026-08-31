@@ -1,0 +1,106 @@
+@page "/create"
+@page "/edit/{Id:int}"
+
+@inject IApiClient apiClient
+@inject NavigationManager NavManager
+
+<h3>@title</h3>
+
+<EditForm EditContext="editContext" OnSubmit="@FormSubmitted">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+    <p class="alert-danger">@error</p>
+    <div class="form-group row">
+        <label class="col-ms-2 col-form-label">ID</label>
+        <div class="col-sm-10">
+            @book.Id
+        </div>
+    </div>
+    <div class="form-group row">
+        <label class="col-ms-2 col-form-label">Title</label>
+        <div class="col-sm-10">
+            <InputText class="form-control" @bind-Value="book.Title" />
+            <ValidationMessage For="@(() => book.Title)" />
+        </div>
+    </div>
+    <div class="form-group row">
+        <label class="col-ms-2 col-form-label">Year</label>
+        <div class="col-sm-10">
+            <InputNumber class="form-control" @bind-Value="book.Year" />
+            <ValidationMessage For="@(() => book.Year)" />
+        </div>
+    </div>
+    <div class="form-group row">
+        <label class="col-ms-2 col-form-label">AuthorId</label>
+        <div class="col-sm-10">
+            <InputNumber class="form-control" @bind-Value="book.AuthorId" />
+            <ValidationMessage For="@(() => book.AuthorId)" />
+        </div>
+    </div>
+
+    <div class="form-group row">
+        <label class="col-ms-2 col-form-label"></label>
+        <div class="col-sm-10">
+            <button type="submit" class="btn btn-primary">Save</button>
+        </div>
+    </div>
+</EditForm>
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    private string error = "";
+    private string title = "Edit";
+    private EditContext editContext;
+    private Book book = new Book();
+
+    private ValidationMessageStore messageStore;
+
+    protected override async Task OnInitializedAsync()
+    {
+        editContext = new EditContext(book);
+        messageStore = new ValidationMessageStore(editContext);
+
+        if (Id == 0)
+        {
+            title = "Add";
+            return;
+        }
+
+        var response = await apiClient.Get(Id);
+        if (!response.HasErrors)
+        {
+            book = response.Value;
+            editContext = new EditContext(book);
+            messageStore = new ValidationMessageStore(editContext);
+        }
+    }
+
+    private async Task FormSubmitted()
+    {
+        // Eemalda eelnevad veateated
+        messageStore?.Clear();
+
+        var result = await apiClient.Save(book);
+        if (!result.HasErrors)
+        {
+            NavManager.NavigateTo("/lists");
+            return;
+        }
+
+        foreach (var error in result.Errors)
+        {
+            messageStore?.Add(new FieldIdentifier(book, string.Empty), error);
+        }
+
+        foreach (var error in result.PropertyErrors)
+        {
+            var propertyName = error.Key[0].ToString().ToUpper() + error.Key.Substring(1);
+            messageStore?.Add(new FieldIdentifier(book, propertyName), error.Value);
+        }
+
+        // Teavita EditForm'i, et vead on muutunud
+        editContext?.NotifyValidationStateChanged();
+    }
+}

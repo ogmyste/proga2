@@ -1,0 +1,26 @@
+<h2>{{ isEdit ? 'Edit book' : 'Add book' }}</h2>
+
+<div *ngIf="errors.length > 0" class="alert alert-danger">
+  <div *ngFor="let error of errors">{{ error }}</div>
+</div>
+
+<form (ngSubmit)="save()" #bookForm="ngForm">
+  <div class="form-group">
+    <label>Title</label>
+    <input name="title" [(ngModel)]="book.title" class="form-control" required />
+    <div *ngIf="propertyErrors['title']" class="text-danger">{{ propertyErrors['title'] }}</div>
+  </div>
+  <div class="form-group">
+    <label>Year</label>
+    <input name="year" type="number" [(ngModel)]="book.year" class="form-control" required />
+    <div *ngIf="propertyErrors['year']" class="text-danger">{{ propertyErrors['year'] }}</div>
+  </div>
+  <div class="form-group">
+    <label>AuthorId</label>
+    <input name="authorId" type="number" [(ngModel)]="book.authorId" class="form-control" required />
+    <div *ngIf="propertyErrors['authorId']" class="text-danger">{{ propertyErrors['authorId'] }}</div>
+  </div>
+
+  <button type="submit" class="btn btn-primary" [disabled]="bookForm.invalid">Save</button>
+  <a class="btn btn-secondary" routerLink="/books">Cancel</a>
+</form>

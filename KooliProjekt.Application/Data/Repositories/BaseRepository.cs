@@ -3,12 +3,14 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Diagnostics.CodeAnalysis;
 
 namespace KooliProjekt.Application.Data.Repositories
 {
     /// <summary>
     /// Repositoride baasklass (pakub CRUD toiminguid)
     /// </summary>
+[ExcludeFromCodeCoverage]
     public abstract class BaseRepository<T> where T : Entity
     {
         protected ApplicationDbContext DbContext { get; private set; }

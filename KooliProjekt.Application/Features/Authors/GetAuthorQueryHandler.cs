@@ -1,47 +1,61 @@
+using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using KooliProjekt.Application.Data;
-using KooliProjekt.Application.Data.Repositories;
+using KooliProjekt.Application.Dto;
 using KooliProjekt.Application.Infrastructure.Results;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 
 namespace KooliProjekt.Application.Features.Authors
 {
-    /// <summary>
-    /// Kasutab IAuthorRepositoryt
-    /// </summary>
-    public class GetAuthorQueryHandler : IRequestHandler<GetAuthorQuery, OperationResult<object>>
+    // 16.01.2026 - AuthorDetailsDto
+    public class GetAuthorQueryHandler : IRequestHandler<GetAuthorQuery, OperationResult<AuthorDetailsDto>>
     {
-        private readonly IAuthorRepository _authorRepository;
+        private readonly ApplicationDbContext _dbContext;
 
-        public GetAuthorQueryHandler(IAuthorRepository authorRepository)
+        public GetAuthorQueryHandler(ApplicationDbContext dbContext)
         {
-            _authorRepository = authorRepository;
+            if (dbContext == null)
+            {
+                throw new ArgumentNullException(nameof(dbContext));
+            }
+
+            _dbContext = dbContext;
         }
 
-        public async Task<OperationResult<object>> Handle(GetAuthorQuery request, CancellationToken cancellationToken)
+        public async Task<OperationResult<AuthorDetailsDto>> Handle(GetAuthorQuery request, CancellationToken cancellationToken)
         {
-            var result = new OperationResult<object>();
-            var author = await _authorRepository.GetByIdAsync(request.Id);
+            if (request == null)
+            {
+                throw new ArgumentNullException(nameof(request));
+            }
 
-            if (author == null)
+            var result = new OperationResult<AuthorDetailsDto>();
+
+            if (request.Id <= 0)
             {
                 return result;
             }
 
-            result.Value = new
-            {
-                Id = author.Id,
-                FirstName = author.FirstName,
-                LastName = author.LastName,
-                Books = author.Books?.Select(book => new
+            result.Value = await _dbContext
+                .Authors
+                .Include(author => author.Books)
+                .Where(author => author.Id == request.Id)
+                .Select(author => new AuthorDetailsDto
                 {
-                    book.Id,
-                    book.Title,
-                    book.Year
+                    Id = author.Id,
+                    FirstName = author.FirstName,
+                    LastName = author.LastName,
+                    Books = author.Books.Select(book => new BookDto
+                    {
+                        Id = book.Id,
+                        Title = book.Title,
+                        Year = book.Year
+                    }).ToList()
                 })
-            };
+                .FirstOrDefaultAsync();
 
             return result;
         }
